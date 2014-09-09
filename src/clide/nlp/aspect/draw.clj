@@ -281,7 +281,7 @@
          #(objecto-> %1
                      [:have (lvar) {:lemma "distance"}]
                      [:of unit]
-                     [:be length {:tag :CD}])
+                     [:be length {:tag "CD"}])
          [from-triple to-triple])
        (conda
          [(valid-length-unito edge unit length)]
@@ -304,7 +304,7 @@
       [(objecto-> t
                   [:be (lvar) {:lemma "long"}]
                   [:be unit]
-                  [:be length {:tag :CD}])
+                  [:be length {:tag "CD"}])
 
        (conda
          [(valid-length-unito edge unit length)]
