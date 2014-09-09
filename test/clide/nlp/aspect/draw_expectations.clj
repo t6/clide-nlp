@@ -1,11 +1,9 @@
 (ns clide.nlp.aspect.draw-expectations
   (:refer-clojure :exclude [== record?])
   (:require [expectations :refer :all :exclude (fail)]
-            [clojure.core.logic.pldb :refer (with-db)]
             [clojure.core.logic :refer :all :exclude (run*)]
             [clide.nlp.knowledge-base.expectations-utils :refer (db-with-text)]
-            [tobik.snippets.nlp :as nlp]
-            [clide.nlp.knowledge-base.triples :refer (objecto-> someo)]
+            [t6.snippets.nlp :as nlp]
             [clide.nlp.aspect.draw :refer :all]
             [clide.nlp.aspect.draw.warnings :as warnings]
             [plumbing.core :refer (for-map)]))
@@ -74,7 +72,7 @@
 (defmacro run*
   [k & body]
   `(binding [*warnings* (atom [])]
-     (with-db (dbs ~k)
+     (nlp/with-db (dbs ~k)
        (let [result# (doall (run-nc* ~@body))]
          {:result   (vec result#)
           :warnings @*warnings*}))))

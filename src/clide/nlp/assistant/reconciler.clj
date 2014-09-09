@@ -2,22 +2,58 @@
   "The reconciler splits text files into chunks and creates a computation model
   for each chunk. It provides support for Clide operations, so that the chunks
   are kept up to date and in sync with Clide's internal state."
-  (:require [clojure.string :as str]
+  (:refer-clojure :exclude [defn])
+  (:require [schema.core :as s :refer (defn defschema)]
+            [plumbing.core :refer (fnk)]
+            [clojure.string :as str]
             [clojure.core.match :refer (match)]
-            [clojure.core.typed :as t :refer (Any)]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
             [clide.nlp.logging :as log]
-            [tobik.snippets.span :as span :refer (Span)]
-            [tobik.snippets.core :as model]
-            [tobik.snippets.nlp :as nlp]
-            tobik.snippets.nlp.corenlp
-            tobik.snippets.triples
+            [clide.nlp.aspect.draw :as draw]
+            [clide.nlp.aspect.ontology :as onto]
+            [t6.snippets.span :as span :refer (Span)]
+            [t6.snippets.core :as snippets]
+            [t6.snippets.nlp :as nlp]
+            t6.snippets.nlp.corenlp
+            t6.snippets.triples
             [lazymap.core :refer (lazy-hash-map)])
   (:import (clojure.lang ExceptionInfo)))
 
-;;; ---------------------------------------------------------------------------
+(defschema Operation
+  (s/either
+   [(s/one (s/enum :insert) "op") (s/one s/Str "inserted string")]
+   [(s/one (s/enum :retain) "op") (s/one s/Int "retain n characters")]
+   [(s/one (s/enum :delete) "op") (s/one s/Int "delete n characters")]))
+
+(defschema Chunk
+  {:text        s/Str
+   :index       s/Int
+   :span        span/Span
+   :annotations s/Any
+   :reconcile?  s/Bool
+   :separator?  s/Bool})
+
+(defschema State
+  {:text      s/Str
+   :mime-type s/Str
+   :chunks    [Chunk]})
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Reconciler
+
+(def reconciler-graph
+  (assoc snippets/dependency-graph
+    :draw
+    (fnk [reified-triples :as this]
+      (nlp/with-db this
+        (#'draw/extract-graph)))
+
+    :ontology
+    (fnk [reified-triples :as this]
+      (nlp/with-db this
+        (#'onto/reified-triples->ontology reified-triples "ontology.rdf"))
+      (slurp "ontology.rdf"))))
 
 (declare reconcile-chunks)
 
@@ -25,15 +61,14 @@
   "Splits the input text into chunks. This is a multi-method that
   dispatches on the text's MIME type. It should return a vector of chunks.
   Check the type alias `Chunk` for what a chunk has to look like."
-  (fn [mime-type text]
+  (s/fn [mime-type :- s/Str, text :- s/Str]
     mime-type))
 
-(defn initialize
+(defn initialize :- State
   "Prepares `text` for annotation. This intializes the reconciler and
   returns an initial state. See `State`."
-  ([text]
-   (initialize "text/plain" text))
-  ([mime-type text]
+  ([text] (initialize "text/plain" text))
+  ([mime-type :- s/Str, text :- s/Str]
    (let [text-chunks (chunks mime-type text)]
      (reconcile-chunks
        {:text      (or text "")
@@ -54,9 +89,9 @@
           :annotate?   (not= "\n----\n" chunk)
           :span        [start (+ start (count chunk))]})])
 
-(defn dash-paragraph-chunker
+(defn dash-paragraph-chunker :- [Chunk]
   "Extracts all chunks from the string `text`"
-  [text]
+  [text :- s/Str]
   ;; TODO
   (nth (->> (str/split text #"\n----\n")
             (interpose "\n----\n")
@@ -90,17 +125,17 @@
         warnings (atom [])]
     (letfn [(add-chunk
               ([chunks span separator?]
-               (conj! chunks
-                      {:text        (span/subs text span)
-                       :index       (count chunks)
-                       :span        span
-                       :annotations (lazy-hash-map
-                                      :reader-errors @warnings)
-                       :separator?  separator?
-                       :annotate?   true
-                       :reconcile?  (not separator?)}))
+                 (conj! chunks
+                        {:text        (span/subs text span)
+                         :index       (count chunks)
+                         :span        span
+                         :annotations (lazy-hash-map
+                                       :reader-errors @warnings)
+                         :separator?  separator?
+                         :annotate?   true
+                         :reconcile?  (not separator?)}))
               ([chunks span]
-               (add-chunk chunks span false)))
+                 (add-chunk chunks span false)))
 
             (add-separator
               [chunks prev-span next-span]
@@ -139,8 +174,8 @@
                 {:keys [end-line end-column line column]} (meta form)]
             (if (= form ::end)
               (persistent!
-                ;; check if there is more text at the end of the file
-                (add-separator chunks last-span [(count text) (count text)]))
+               ;; check if there is more text at the end of the file
+               (add-separator chunks last-span [(count text) (count text)]))
               (let [start (+ (nth (nth lines line) 0) column -1)
                     end (+ (nth (nth lines end-line) 0) end-column -1)
                     span [start end]]
@@ -156,7 +191,7 @@
 
 (defmulti annotate
   ""
-  (fn [state chunk] (:mime-type state)))
+  (s/fn [state :- State, chunk :- Chunk] (:mime-type state)))
 
 (defmethod annotate :default
   [state chunk]
@@ -165,9 +200,7 @@
 
 (defmethod annotate "text/plain"
   [state chunk]
-  (model/create (assoc chunk
-                  :queries  (model/queries-from-namespace 'tobik.snippets.triples)
-                  :pipeline (:pipeline state))))
+  (snippets/create reconciler-graph (assoc chunk :pipeline (:pipeline state))))
 
 (defmethod annotate "text/x-clojure"
   [state chunk])
@@ -219,14 +252,14 @@
                   (format "unknown delta operation %s"
                           (pr-str op))))))
 
-(defn apply-delta
+(defn apply-delta :- s/Str
   "applies the edit operation list `delta` to `text` and returns
    an updated version of `text`."
-  [text delta]
+  [text :- s/Str, delta :- [Operation]]
   (str/join (second (reduce apply-delta-helper [text []] delta))))
 
-;; --------------------------------------------------------------------
-;; update functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; update functions
 
 (defn- subsequent-span-update-iter
   [dspan spans i]
@@ -286,8 +319,8 @@
             (format "unknown delta operation %s"
                     (pr-str op))))))
 
-(defn- mark-chunks-for-reconciling
-  [state index [span & spans]]
+(defn mark-chunks-for-reconciling :- State
+  [state :- State, index :- span/Point, [span & spans] :- (s/maybe [span/Span])]
   (if span
     (let [old-span (get-in state [:chunks index :span])]
       (recur
@@ -302,7 +335,7 @@
        spans))
     state))
 
-(defn- apply-delta-to-chunks
+(defn apply-delta-to-chunks :- State
   "Updates the span of all chunks in `state` as appropriate for the
    edit operations in `delta`.
 
@@ -311,29 +344,29 @@
 
    If a chunk's span changed its annotations will be reset as well.
    Any previous annotations will be lost."
-  [state delta]
+  [state :- State, delta :- [Operation]]
   (let [spans (vec (map :span (:chunks state)))
         spans (first (reduce apply-delta-to-chunks-iter [spans spans 0] delta))]
     (mark-chunks-for-reconciling state 0 spans)))
 
-(defn- update-chunk
+(defn update-chunk :- State
   "See `update-chunks`."
-  [state chunk]
+  [state :- State, chunk :- Chunk]
   (let [span (:span chunk)
         text (span/subs (:text state) span)]
     (assoc-in state [:chunks (:index chunk) :text] text)))
 
-(defn- update-chunks
+(defn update-chunks :- State
   "Updates the associated text for all chunks by re-extracting the text
    from `state` based on each chunk's :span value."
-  [state]
+  [state :- State]
   (reduce update-chunk state (:chunks state)))
 
-(defn detect-new-chunks
+(defn detect-new-chunks :- State
   "Chunk the text again and see if the chunk count matches
   the chunk previous chunk count, if not reinitalize the
   reconciler (this likely means someone added a new chunk!)."
-  [state]
+  [state :- State]
   (let [fresh-state (initialize (:mime-type state) (:text state))]
     (if (or (not= (count (:chunks fresh-state))
                   (count (:chunks state)))
@@ -344,11 +377,11 @@
         fresh-state)
       state)))
 
-(defn reconcile-chunk
+(defn reconcile-chunk :- State
   "Reconciles `chunk` if it is marked for reconiliation.
   Returns an updated version of `state` that will contain
   an updated version of the chunk with `:annotations` set."
-  [state chunk]
+  [state :- State, chunk :- Chunk]
   (if (:reconcile? chunk)
     (if-let [index (:index chunk)]
       (update-in state [:chunks index]
@@ -363,17 +396,17 @@
       state)
     state))
 
-(defn reconcile-chunks
+(defn reconcile-chunks :- State
   "Reconciles all chunks that are marked for reconciling.
   See `reconcile-chunk`."
-  [state]
+  [state :- State]
   (reduce reconcile-chunk state (:chunks state)))
 
-(defn chunk-at-point
+(defn chunk-at-point :- [(s/one State "state") (s/one (s/maybe Chunk) "chunk")]
   "Returns the chunk at offset `point`. If the chunk was not previously annotated start
    annotating the chunk. Returns a vector `[state chunk]` with an updated version of `state`
    and the actual chunk at offset `point`."
-  [state point]
+  [state :- State, point :- span/Point]
   (if-let [[i _] (span/span-at-point (:chunks state) point)]
     (let [chunk (-> state :chunks (nth i))
           state (if (and (not (:separator? chunk))
@@ -384,10 +417,10 @@
       [state chunk])
     [state nil]))
 
-(defn update
+(defn update :- State
   "Applies the edit operations `delta` to `state`.
    Returns an updated version of `state`."
-  [state delta]
+  [state :- State, delta :- [Operation]]
   ;; Changes can be
   ;;  1. between two chunks A and B, in which case thetere are two possible
   ;;     scenarios:
@@ -405,91 +438,3 @@
         (assoc :text text)
         update-chunks
         detect-new-chunks)))
-
-;;; -------------------------------------------------------------------
-;;; Type annotations
-
-;;; Some fns can't be type checked atm because of missing type
-;;; annotations for clojure.core/{update,get,assoc}-in
-
-(t/defalias ^{:doc/format :plaintext}
-  Operation
-  (t/HVec [(t/I (t/Value :insert)
-                (t/Value :retain)
-                (t/Value :delete))
-           (t/I String t/Int)]))
-
-(t/defalias ^{:doc/format :plaintext}
-  Chunk
-  (t/HMap :mandatory
-          {:text        String
-           :index       t/Int
-           :span        span/Span
-           :annotations (t/Option model/AnnotationMap)
-           :reconcile?  Boolean
-           :separator?  Boolean}))
-
-(t/defalias ^{:doc/format :plaintext}
-  State
-  (t/HMap :mandatory
-          {:text      String
-           :mime-type String
-           :chunks    (t/Vec Chunk)}))
-
-(t/ann chunks-iter
-       [(t/HVec [t/Int t/Int (t/Vec Chunk)]) String
-        -> (t/HVec [t/Int t/Int (t/Vec Chunk)])])
-
-(t/ann chunks
-       [String -> (t/Vec Chunk)])
-
-(t/ann initialize
-       [String -> State])
-
-(t/ann ^:no-check reconcile-chunk
-       [State Chunk -> State])
-
-(t/ann reconcile-chunks
-       [State -> State])
-
-(t/ann chunk-at-point
-       [State t/Int -> (t/HVec [State (t/Option Chunk)])])
-
-(t/ann ^:no-check subsequent-span-update-iter
-       [Span (t/Vec Span) t/Int -> (t/Vec Span)])
-
-(t/ann subsequent-span-update
-       [(t/Vec Span) t/Int Span -> (t/Vec Span)])
-
-(t/ann apply-delta-update-state
-       [(t/Vec Span) t/Int t/Int Span Operation
-        -> (t/Vec Span)])
-
-(t/ann apply-delta-to-chunks-iter
-       [(t/HVec [(t/Vec Span) (t/Vec Span) t/Int]) Operation
-        -> (t/HVec [(t/Vec Span) (t/Vec Span) t/Int])])
-
-(t/ann ^:no-check mark-chunks-for-reconciling
-       [State t/Int (t/Option (t/Seq Span)) -> State])
-
-(t/ann ^:no-check apply-delta-to-chunks
-       [State (t/Option (t/Seq Operation)) -> State])
-
-(t/ann ^:no-check update-chunk
-       [State Chunk -> State])
-
-(t/ann update-chunks
-       [State -> State])
-
-(t/ann detect-new-chunks
-       [State -> State])
-
-(t/ann update
-       [State (t/Seq Operation) -> State])
-
-(t/ann apply-delta-helper
-       [(t/HVec [String (t/Vec String)]) Operation
-        -> (t/HVec [String (t/Vec String)])])
-
-(t/ann apply-delta
-       [String (t/Seq Operation) -> String])

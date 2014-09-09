@@ -8,9 +8,9 @@
             [clide.nlp.logging :as log]            
             [clojure.core.match :refer (match)]
             [clojure.core.logic :as l]
-            [tobik.snippets.span :as span]
-            [tobik.snippets.nlp :as nlp]
-            [tobik.snippets.nlp.viz :as viz]
+            [t6.snippets.span :as span]
+            [t6.snippets.nlp :as nlp]
+            [t6.snippets.nlp.viz :as viz]
             [clide.nlp.assistant.annotations :as annotate]
             [plumbing.core :refer (for-map)]
             [lazymap.core :refer (lazy-hash-map delayed-hash-map)]
@@ -89,10 +89,10 @@
   (let [triples (-> chunk :annotations :grouped-triples)
         span    (:span chunk)
         fmt (fn [{:keys [subject-group predicate object-group] :as t}]
-              {:subject   (print-str (mapv nlp/word-map->text subject-group))
+              {:subject (print-str (mapv nlp/word-map->text subject-group))
                :predicate (nlp/word-map->text predicate)
-               :object    (print-str (mapv nlp/word-map->text object-group))
-               :builder   (name (get-in (meta t) [:origin :builder]))})]
+               :object (print-str (mapv nlp/word-map->text object-group))
+               :query (name (get-in (meta t) [:origin :query]))})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (triple-table-template fmt triples)]))))
@@ -101,11 +101,11 @@
   [state chunk point]
   (let [triples (-> chunk :annotations :triples)
         span    (:span chunk)
-        fmt (fn [{:keys [subject predicate object builder]}]
-              {:subject   (nlp/word-map->text subject)
+        fmt (fn [{:keys [subject predicate object query]}]
+              {:subject (nlp/word-map->text subject)
                :predicate (nlp/word-map->text predicate)
-               :object    (nlp/word-map->text object)
-               :builder   (name builder)})]
+               :object (nlp/word-map->text object)
+               :query (name query)})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (triple-table-template fmt triples)]))))
@@ -115,10 +115,10 @@
   (let [triples (-> chunk :annotations :reified-triples)
         span    (:span chunk)
         fmt     (fn [{:keys [subject predicate object] :as t}]
-                  {:subject   (:symbol subject)
+                  {:subject (:symbol subject)
                    :predicate predicate
-                   :object    (:symbol object)
-                   :builder   (name (get-in (meta t) [:origin :builder]))})]
+                   :object (:symbol object)
+                   :query (name (get-in (meta t) [:origin :query]))})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (->> triples
@@ -282,7 +282,7 @@
   (s/validate
     AnnotationStreamsSchema
     {:eval             {:annotator  #'eval-annotation
-                        :streams    {:default       "Triple builder eval"}
+                        :streams    {:default       "Triple query eval"}
                         :mime-types #{"text/x-clojure"}}
      :reader-errors    {:annotator  #'reader-errors
                         :streams    {:default "Reader errors"}

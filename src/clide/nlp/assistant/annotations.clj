@@ -1,7 +1,7 @@
 (ns clide.nlp.assistant.annotations
   "Utility functions for creating Clide annotations."
   (:refer-clojure :exclude [chunk])
-  (:require [tobik.snippets.span :as span]))
+  (:require [t6.snippets.span :as span]))
 
 (defn chunk
   [{:keys [span] :as chunk} point & args]

@@ -1,8 +1,7 @@
 (ns clide.nlp.aspect.ontology
   (:refer-clojure :exclude [chunk])
   (:require [tawny.owl :refer :all]
-            [clojure.string :as str]
-            [clojure.math.combinatorics :refer (selections)]))
+            [clojure.string :as str]))
 
 (defn assert-object-property
   [prop c1 c2]

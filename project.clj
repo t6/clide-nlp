@@ -82,7 +82,7 @@
 
                  [com.stuartsierra/component "0.2.2"]
 
-                 [com.typesafe.akka/akka-slf4j_2.10 "2.3.6"]
+                 [com.typesafe.akka/akka-slf4j_2.10 "2.2.3"]
                  [org.scala-lang/scala-library "2.10.4"]
 
                  [seesaw "1.4.4"] ; for the starter

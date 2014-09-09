@@ -4,15 +4,109 @@
   (:require [clojure.string :as str]
             [clojure.java.shell :as sh]
             [clojure.set :as set]
-            [clojure.core.logic.pldb :refer (with-db db-rel empty-db db-fact)]
             [clojure.core.logic :refer :all]
             [clide.nlp.logging :as log]
-            [tobik.snippets.util :refer (parse-int)]
-            [tobik.snippets.nlp :as nlp]
-            [clide.nlp.knowledge-base.triples :refer (tripleo someo objecto-> subjecto->)]
+            [t6.snippets.util :refer (parse-int)]
+            [t6.snippets.nlp :as nlp]
             [clide.nlp.aspect.draw.warnings :as warnings]
             [plumbing.core :refer (defnk fnk)])
   (:import (java.util ArrayList)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(declare subjecto-helper objecto-helper)
+
+(defn someo
+  "Matches `pmap` on each word map in the triple `t`.
+  Use `key` to select if you want to match on its subject
+  group (`:subject`) or its object group (`:object`).
+  `word` is unified with the word map that matched `pmap`."
+  [t key pmap word]
+  (fresh [group]
+    (nlp/triple t)
+    (featurec t {key {:group group}})
+    (membero word group)
+    (featurec word pmap)))
+
+(defn tripleo
+  [[subj pred obj] t]
+  (fresh []
+    (nlp/triple t)
+    (featurec t {:subject   subj
+                 :predicate pred
+                 :object    obj})))
+
+(defnu subjecto-helper
+  [q init-triple init-subject chain]
+  ([_ _ _ []]
+   (== q init-triple))
+  ([_ _ _ [[predicate object] . tail]]
+   (fresh [t]
+     (nlp/triple t)
+     (featurec init-triple {:predicate predicate
+                            :object    object
+                            :subject   init-subject})
+     (subjecto-helper q t init-subject tail)))
+  ([_ _ _ [[pmap predicate object] . tail]]
+   (fresh [t]
+     (nlp/triple t)
+     (featurec init-triple {:predicate predicate
+                            :object    object
+                            :subject   init-subject})
+     (someo init-triple :subject pmap (lvar))
+     (subjecto-helper q t init-subject tail))))
+
+(defn subjecto->
+  [t & chain]
+  (fresh [subject]
+    (nlp/triple t)
+    (featurec t {:subject subject})
+    (subjecto-helper t t subject chain)))
+
+(defnu objecto-helper
+  [q init-triple init-subject chain]
+  ([_ _ _ []]
+   (== q init-triple))
+  ([_ _ _ [[predicate object] . tail]]
+   (fresh [t]
+     (nlp/triple t)
+     (featurec init-triple {:predicate predicate
+                            :object    object
+                            :subject   init-subject})
+     (objecto-helper q t object tail)))
+  ([_ _ _ [[predicate object pmap] . tail]]
+   (fresh [t]
+     (nlp/triple t)
+     (featurec init-triple {:predicate predicate
+                            :object    object
+                            :subject   init-subject})
+     (someo init-triple :object pmap (lvar))
+     (objecto-helper q t object tail))))
+
+(defn objecto->
+  "The 'object thread' goal `objecto->` follows a chain of triples.
+
+      (run* [q]
+        (objecto-> q {:symbol 'B-Edge-it-0}
+                     [:be {:lemma \"long\"}]
+                     [:be {:lemma \"cm\"}]))
+
+  will follow the triples
+
+      [B-Edge-it-0 :be long-1]
+      [long-1      :be cm-3]
+
+  and will return the word maps with lemmas 'long' and 'cm' that are
+  inside the triples object groups.
+
+  Will succeed iff all rules succeed."
+  [t & chain]
+  (fresh [subject]
+    (nlp/triple t)
+    (featurec t {:subject subject})
+    (objecto-helper t t subject chain)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def ^{:doc "A vector of words that should be recognized as units by the queries."}
   valid-units ["cm" "mm" "dm" "m"])
@@ -376,18 +470,13 @@
                   :type        type}))))
 
 (defn extract-graph
-  [db]
-  (with-db db
-    (-> {}
-        collect-nodes
-        collect-edges
-        warn-about-duplicate-edges
-        warn-about-unused-nodes
-        (update-in [:warnings] (comp (partial sort-by first)
-                                     distinct))
-        reify-warnings
-        ->dot)))
-
-(defn triples->dot
-  [db reified-triples]
-  (extract-graph db))
+  []
+  (-> {}
+      collect-nodes
+      collect-edges
+      warn-about-duplicate-edges
+      warn-about-unused-nodes
+      (update-in [:warnings] (comp (partial sort-by first)
+                                   distinct))
+      reify-warnings
+      ->dot))
