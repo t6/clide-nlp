@@ -15,6 +15,7 @@
             [t6.snippets.span :as span :refer (Span)]
             [t6.snippets.core :as snippets]
             [t6.snippets.nlp :as nlp]
+            [t6.snippets.util :refer (lazy-merge)]
             t6.snippets.nlp.corenlp
             t6.snippets.triples
             [lazymap.core :refer (lazy-hash-map)])
@@ -51,6 +52,7 @@
 
     :ontology
     (fnk [reified-triples :as this]
+      (log/info "Realizing :ontology")
       (nlp/with-db this
         (#'onto/reified-triples->ontology reified-triples "ontology.rdf"))
       (slurp "ontology.rdf"))))
@@ -64,17 +66,18 @@
   (s/fn [mime-type :- s/Str, text :- s/Str]
     mime-type))
 
+(def pipeline (delay (nlp/pipeline {:type :corenlp})))
+
 (defn initialize :- State
   "Prepares `text` for annotation. This intializes the reconciler and
   returns an initial state. See `State`."
-  ([text] (initialize "text/plain" text))
+  ([text] (initialize "text/plain" text))  
   ([mime-type :- s/Str, text :- s/Str]
-   (let [text-chunks (chunks mime-type text)]
-     (reconcile-chunks
-       {:text      (or text "")
-        :pipeline  (nlp/pipeline {:type :corenlp})
-        :mime-type mime-type
-        :chunks    (vec text-chunks)}))))
+     (let [text-chunks (chunks mime-type text)]
+       (reconcile-chunks
+        {:text      (or text "")         
+         :mime-type mime-type
+         :chunks    (vec text-chunks)}))))
 
 (defn- dash-paragraph-chunker-iter
   [[i start chunks] chunk]
@@ -200,7 +203,7 @@
 
 (defmethod annotate "text/plain"
   [state chunk]
-  (snippets/create reconciler-graph (assoc chunk :pipeline (:pipeline state))))
+  (snippets/create reconciler-graph (assoc chunk :pipeline @pipeline)))
 
 (defmethod annotate "text/x-clojure"
   [state chunk])
@@ -386,12 +389,12 @@
     (if-let [index (:index chunk)]
       (update-in state [:chunks index]
         assoc
-        :annotations (merge
-                       ;; preserve annotations that were added at
-                       ;; chunk creation time
-                       (:annotations chunk)
-                       (if-not (:separator? chunk)
-                         (annotate state chunk)))
+        :annotations (lazy-merge
+                      ;; preserve annotations that were added at
+                      ;; chunk creation time
+                      (:annotations chunk)
+                      (if-not (:separator? chunk)
+                        (annotate state chunk)))
         :reconcile?  false)
       state)
     state))
