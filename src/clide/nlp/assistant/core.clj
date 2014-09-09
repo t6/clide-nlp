@@ -82,7 +82,7 @@
 (defn triple-table-template
   [fmt triples]
   (render-file "clide/nlp/assistant/core/triples.html"
-               {:triples (map fmt triples)}))
+               {:triples (mapv fmt triples)}))
 
 (defn grouped-triples
   [state chunk point]
@@ -90,9 +90,11 @@
         span    (:span chunk)
         fmt (fn [{:keys [subject-group predicate object-group] :as t}]
               {:subject (print-str (mapv nlp/word-map->text subject-group))
-               :predicate (nlp/word-map->text predicate)
+               :predicate (if (keyword? predicate)
+                            predicate
+                            (nlp/word-map->text predicate))
                :object (print-str (mapv nlp/word-map->text object-group))
-               :query (name (get-in (meta t) [:origin :query]))})]
+               :query (get-in (meta t) [:origin :query])})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (triple-table-template fmt triples)]))))
@@ -103,9 +105,11 @@
         span    (:span chunk)
         fmt (fn [{:keys [subject predicate object query]}]
               {:subject (nlp/word-map->text subject)
-               :predicate (nlp/word-map->text predicate)
+               :predicate (if (keyword? predicate)
+                            predicate
+                            (nlp/word-map->text predicate))
                :object (nlp/word-map->text object)
-               :query (name query)})]
+               :query query})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (triple-table-template fmt triples)]))))
@@ -118,7 +122,7 @@
                   {:subject (:symbol subject)
                    :predicate predicate
                    :object (:symbol object)
-                   :query (name (get-in (meta t) [:origin :query]))})]
+                   :query (get-in (meta t) [:origin :query])})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (->> triples
