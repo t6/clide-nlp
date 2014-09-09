@@ -6,6 +6,7 @@
             [com.stuartsierra.component :as component]
             [clide.nlp.assistant.core :as assistant]
             [clide.nlp.assistant.reconciler :as r]
+            [t6.snippets.nlp :as nlp]
             [t6.from-scala.core :refer ($) :as $])
   (:import (org.apache.tools.ant.util JavaEnvUtils)
            (clide.nlp.assistant AsyncAssistantServer
@@ -63,7 +64,7 @@
           #_(pipeline/pipeline)
 
           (let [watch-for-changes!
-                (fn [_ _ _ _]
+                (fn [& _]
                   (async/go
                     (if-let [[file state chunk point]
                              ($/view (.lastAnnotationPoint behavior))]
@@ -74,10 +75,10 @@
                                            :annotations
                                              (r/annotate state chunk))
                                            point)))))]
-            ;; Register watches on the triple builders to reannotate the
+            ;; Register watches on the triple queries to reannotate the
             ;; last annotated chunk whenever the triple builders change
-            #_(doseq [builder t/*triple-builders*]
-              (add-watch builder :refresh-annotations watch-for-changes!))
+            (doseq [query (keys @nlp/triple-query-registry)]
+              (nlp/watch-query query ::refresh-annotations watch-for-changes!))
 
             ;; Register watches on the annotation stream handlers and update
             ;; the last annotated chunk whenever they change
