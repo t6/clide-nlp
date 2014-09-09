@@ -1,0 +1,14 @@
+;; CoreNLP pipeline settings
+{:annotators                   [:tokenize :cleanxml :ssplit :pos :lemma :ner :parse :dcoref]
+ :dcoref.use.big.gender.number true
+ :dcoref.sievePasses           [:MarkRole
+                                :DiscourseMatch
+                                :ExactStringMatch
+                                :RelaxedExactStringMatch
+                                :PreciseConstructs
+                                :StrictHeadMatch1
+                                :StrictHeadMatch2
+                                :StrictHeadMatch3
+                                :StrictHeadMatch4
+                                :RelaxedHeadMatch
+                                :PronounMatch]}

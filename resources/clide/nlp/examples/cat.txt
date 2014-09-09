@@ -1,0 +1,51 @@
+The cat eats the mouse.
+
+----
+
+The mouse is eaten by the cat.
+
+----
+
+The cat is eating the mouse.
+
+----
+
+Because the cat is hungry it eats the mouse.
+
+----
+
+After it catched the mouse the cat ate it.
+
+----
+
+The cat is hungry. It eats the mouse.
+
+----
+
+Because the dead cat is hungry it eats the mouse.
+
+----
+
+The cat, that is white, eats the mouse.
+
+----
+
+The cat plays with the mouse and then eats it.
+
+----
+
+The cat plays with and eats the mouse.
+
+----
+
+The cat plays with, hits and eats the mouse.
+
+----
+
+The cat is hungry so it eats the mouse.
+
+----
+
+The hungry cat eats the mouse.
+
+

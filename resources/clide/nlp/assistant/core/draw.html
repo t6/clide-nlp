@@ -1,0 +1,27 @@
+<div style="font-family: Sans; overflow: auto;"><!--
+  -->{% for warning in warnings %}<!--
+  -->{{warning.text|safe}}<!--
+
+  -->{% if warning.suggestions %}<h4>Suggestions</h4><!--
+  --><ul><!--
+  -->{% for suggestion in warning.suggestions %}<!--
+  --><li>{{suggestion|safe}}</li><!--
+  -->{% endfor %}<!--
+  --></ul>{% endif %}<!--
+
+  -->{% if warning.sentences %}<h4>Affected words</h4><!--
+  -->{% for sentence in warning.sentences %}<!--
+  --><h5>Sentence {{sentence.index}}</h5><!--
+  --><code>{{sentence.text}}</code><!--
+  --><ul><!--
+  -->{% for word in sentence.words %}<!--
+  --><li><code>{{word.token}} [{{word.index}}]</code></li><!--
+  -->{% endfor %}<!--
+  --></ul><!--
+  -->{% endfor %}{% endif %}<!--
+
+  -->{% if not forloop.last %}<!--
+  --><hr style="background-color: black; height: 1px; margin-right: 30px;" /><!--
+  -->{% endif %}<!--
+  -->{% endfor %}<!--
+--></div>

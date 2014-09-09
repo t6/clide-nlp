@@ -1,0 +1,5 @@
+Edge Test goes to node End and starts at node Start.
+It is 15 cm long.
+Node Noname and node Start have a distance of 10 cm.
+Node Start and node End are connected as are node Start and
+node Noname. Edge Test is 4 cm long.

@@ -1,0 +1,12 @@
+<div style='overflow: auto;'><!--
+  --><table cellpadding='5' style="text-align: center;"><!--
+    --><colgroup>
+      <col span="4" style="border: 1px solid black;">
+    </colgroup><!--
+    --><tr style="border-bottom: 1px solid black;"><!--
+      --><th>Subject</th><th>Predicate</th><th>Object</th><th>Builder</th></tr><!--
+    -->{% for t in triples %}<!--
+    --><tr><!--
+      --><td>{{ t.subject }}</td><td>{{ t.predicate }}</td><td>{{ t.object }}</td><td>{{ t.builder }}</td><!--
+      --></tr><!--
+    -->{% endfor %}</table></div>
