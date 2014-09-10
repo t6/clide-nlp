@@ -13,8 +13,8 @@ algorithm is tested by translating a natural language text describing
 a graph to an actual graph that is shown as an annotation in the text
 editor.
 
-[<img width="40%" src="https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/semantic-graph.png">](https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/semantic-graph.png)
-[<img width="40%" src="https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/draw.png">](https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/draw.png)
+[<img width="40%" src="https://raw.githubusercontent.com/t6/clide-nlp/master/docs/screenshots/semantic-graph.png">](https://raw.githubusercontent.com/t6/clide-nlp/master/docs/screenshots/semantic-graph.png)
+[<img width="40%" src="https://raw.githubusercontent.com/t6/clide-nlp/master/docs/screenshots/draw.png">](https://raw.githubusercontent.com/t6/snippets/clide-nlp/docs/screenshots/draw.png)
 
 See my bachelor report [An NLP Assistant for
 Clide](http://arxiv.org/abs/1409.2073v1) for more information.
@@ -32,7 +32,7 @@ lein run
 ```
 
 Startup might take a while, make sure you have > 2.5 GiB RAM.  Clide
-with `clide-nlp` will be available on http://localhost:14000
+with `clide-nlp` will be available on [http://localhost:14000](http://localhost:14000)
 afterwards (User: `clide-nlp` / Password: `clide-nlp`).
 
 To get a REPL run
