@@ -87,7 +87,7 @@
 
                  [seesaw "1.4.4"] ; for the starter
                  [org.apache.ant/ant "1.9.4"]
-                 [t6/clide-web_2.10 "2.0-087c169b"
+                 [t6/clide-web_2.10 "2.0-0b4b839d"
                   :exclusions [org.slf4j/slf4j-nop
                                ch.qos.logback/logback-classic
                                org.scala-lang/scala-library]]]

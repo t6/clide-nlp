@@ -1,7 +1,8 @@
 # clide-nlp
 
 `clide-nlp` is an assistant for the collaborative development
-environment `Clide`, that supports the development of NLP applications
+environment [Clide](https://github.com/martinring/clide2),
+that supports the development of NLP applications
 by providing easy access to some common NLP data structures. The
 assistant visualizes text fragments and their dependencies by
 displaying the semantic graph of a sentence, the coreference chain of
