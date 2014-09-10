@@ -13,25 +13,33 @@ algorithm is tested by translating a natural language text describing
 a graph to an actual graph that is shown as an annotation in the text
 editor.
 
-TODO: Screenshot
+[<img width="40%" src="https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/semantic-graph.png">](https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/semantic-graph.png)
+[<img width="40%" src="https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/draw.png">](https://raw.githubusercontent.com/t6/snippets/master/docs/screenshots/draw.png)
 
-Also see http://arxiv.org/abs/1409.2073v1
+See my bachelor report [An NLP Assistant for
+Clide](http://arxiv.org/abs/1409.2073v1) for more information.
+
+`clide-nlp`'s triple mining algorithm is implemented in a
+standalone library called
+[`snippets`](https://github.com/t6/snippets).
 
 ## Usage
 
+Install [Leiningen](http://leiningen.org/) and then run
+
 ```bash
-# lein run
+lein run
 ```
 
 Startup might take a while, make sure you have > 2.5 GiB RAM.  Clide
 with `clide-nlp` will be available on http://localhost:14000
 afterwards (User: `clide-nlp` / Password: `clide-nlp`).
 
-### WARNING
+To get a REPL run
 
-`clide-nlp` includes a component that allows live editing of triple
-queries. The queries are `eval`ed and thus allow executing arbitrary
-Clojure code. I suggest you only run `clide-nlp` on a trusted network.
+```bash
+lein repl
+```
 
 ## License
 
