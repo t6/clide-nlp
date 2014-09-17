@@ -90,9 +90,9 @@
         span    (:span chunk)
         fmt (fn [{:keys [subject-group predicate object-group] :as t}]
               {:subject (print-str (mapv nlp/word-map->text subject-group))
-               :predicate (if (keyword? predicate)
-                            predicate
-                            (nlp/word-map->text predicate))
+               :predicate (if (:derived? predicate)
+                            (:word predicate)
+                            (nlp/word-map->text (:word predicate)))
                :object (print-str (mapv nlp/word-map->text object-group))
                :query (get-in (meta t) [:origin :query])})]
     (when triples
@@ -105,9 +105,9 @@
         span    (:span chunk)
         fmt (fn [{:keys [subject predicate object query]}]
               {:subject (nlp/word-map->text subject)
-               :predicate (if (keyword? predicate)
-                            predicate
-                            (nlp/word-map->text predicate))
+               :predicate (if (:derived? predicate)
+                            (:word predicate)
+                            (nlp/word-map->text (:word predicate)))
                :object (nlp/word-map->text object)
                :query query})]
     (when triples
@@ -120,13 +120,13 @@
         span    (:span chunk)
         fmt     (fn [{:keys [subject predicate object] :as t}]
                   {:subject (:symbol subject)
-                   :predicate predicate
+                   :predicate (:symbol predicate)
                    :object (:symbol object)
                    :query (get-in (meta t) [:origin :query])})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (->> triples
-                                    (sort-by (juxt :predicate
+                                    (sort-by (juxt (comp :symbol :predicate)
                                                    (comp :symbol :subject)))
                                     (triple-table-template fmt))]))))
 

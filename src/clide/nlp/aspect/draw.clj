@@ -28,14 +28,6 @@
     (membero word group)
     (featurec word pmap)))
 
-(defn tripleo
-  [[subj pred obj] t]
-  (fresh []
-    (nlp/triple t)
-    (featurec t {:subject   subj
-                 :predicate pred
-                 :object    obj})))
-
 (defnu subjecto-helper
   [q init-triple init-subject chain]
   ([_ _ _ []]
@@ -43,14 +35,14 @@
   ([_ _ _ [[predicate object] . tail]]
    (fresh [t]
      (nlp/triple t)
-     (featurec init-triple {:predicate predicate
+     (featurec init-triple {:predicate {:symbol predicate}
                             :object    object
                             :subject   init-subject})
      (subjecto-helper q t init-subject tail)))
   ([_ _ _ [[pmap predicate object] . tail]]
    (fresh [t]
      (nlp/triple t)
-     (featurec init-triple {:predicate predicate
+     (featurec init-triple {:predicate {:symbol predicate}
                             :object    object
                             :subject   init-subject})
      (someo init-triple :subject pmap (lvar))
@@ -70,14 +62,14 @@
   ([_ _ _ [[predicate object] . tail]]
    (fresh [t]
      (nlp/triple t)
-     (featurec init-triple {:predicate predicate
+     (featurec init-triple {:predicate {:symbol predicate}
                             :object    object
                             :subject   init-subject})
      (objecto-helper q t object tail)))
   ([_ _ _ [[predicate object pmap] . tail]]
    (fresh [t]
      (nlp/triple t)
-     (featurec init-triple {:predicate predicate
+     (featurec init-triple {:predicate {:symbol predicate}
                             :object    object
                             :subject   init-subject})
      (someo init-triple :object pmap (lvar))
@@ -228,7 +220,7 @@
   (fresh [t subj obj]
     (nlp/triple t)
     (featurec t {:subject   subj
-                 :predicate :connect
+                 :predicate {:symbol :connect}
                  :object    obj})
     (project [subj obj]
       (let [[subject object] (sort-by :symbol [subj obj])]
