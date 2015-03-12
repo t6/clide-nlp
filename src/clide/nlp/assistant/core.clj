@@ -5,7 +5,7 @@
             [clojure.core.async :as async]
             [clojure.set :as set]
             [clojure.string :as str]
-            [clide.nlp.logging :as log]            
+            [clide.nlp.logging :as log]
             [clojure.core.match :refer (match)]
             [clojure.core.logic :as l]
             [t6.snippets.span :as span]
@@ -39,10 +39,10 @@
                  (l/run* [q]
                    (l/fresh [iw span group]
                      ;; match word at point ...
-                     (nlp/word-map iw)
+                     (nlp/word iw)
                      (l/featurec iw {:span span})
                      (l/pred span #(span/point-inside? %1 point))
-                     
+
                      ;; ... and "return all" coreferences of `iw`
                      (nlp/linked iw q))))]
     (annotate/mark point "error"
@@ -55,10 +55,10 @@
                   (l/run* [q]
                     (l/fresh [iw t subj-group obj-group span subj-sym obj-sym]
                       ;; match word at point ...
-                      (nlp/word-map iw)
+                      (nlp/word iw)
                       (l/featurec iw {:span span})
                       (l/pred span #(span/point-inside? %1 point))
-                      
+
                       ;; find a reified triple which contains our word map
                       (nlp/triple t)
                       (l/featurec t {:subject {:symbol subj-sym
@@ -84,17 +84,32 @@
   (render-file "clide/nlp/assistant/core/triples.html"
                {:triples (mapv fmt triples)}))
 
-(defn grouped-triples
+(defn grouped-triple-primitives
   [state chunk point]
-  (let [triples (-> chunk :annotations :grouped-triples)
+  (let [triples (-> chunk :annotations :grouped-triple-primitives)
         span    (:span chunk)
         fmt (fn [{:keys [subject-group predicate object-group] :as t}]
-              {:subject (print-str (mapv nlp/word-map->text subject-group))
+              {:subject (print-str (mapv nlp/word->text subject-group))
                :predicate (if (:derived? predicate)
                             (:word predicate)
-                            (nlp/word-map->text (:word predicate)))
-               :object (print-str (mapv nlp/word-map->text object-group))
+                            (nlp/word->text (:word predicate)))
+               :object (print-str (mapv nlp/word->text object-group))
                :query (get-in (meta t) [:origin :query])})]
+    (when triples
+      (annotate/chunk chunk point
+                      [:Output (triple-table-template fmt triples)]))))
+
+(defn triple-primitives
+  [state chunk point]
+  (let [triples (-> chunk :annotations :triple-primitives)
+        span    (:span chunk)
+        fmt (fn [{:keys [subject predicate object query]}]
+              {:subject (nlp/word->text subject)
+               :predicate (if (:derived? predicate)
+                            (:word predicate)
+                            (nlp/word->text (:word predicate)))
+               :object (nlp/word->text object)
+               :query query})]
     (when triples
       (annotate/chunk chunk point
                       [:Output (triple-table-template fmt triples)]))))
@@ -102,21 +117,6 @@
 (defn triples
   [state chunk point]
   (let [triples (-> chunk :annotations :triples)
-        span    (:span chunk)
-        fmt (fn [{:keys [subject predicate object query]}]
-              {:subject (nlp/word-map->text subject)
-               :predicate (if (:derived? predicate)
-                            (:word predicate)
-                            (nlp/word-map->text (:word predicate)))
-               :object (nlp/word-map->text object)
-               :query query})]
-    (when triples
-      (annotate/chunk chunk point
-                      [:Output (triple-table-template fmt triples)]))))
-
-(defn reified-triples
-  [state chunk point]
-  (let [triples (-> chunk :annotations :reified-triples)
         span    (:span chunk)
         fmt     (fn [{:keys [subject predicate object] :as t}]
                   {:subject (:symbol subject)
@@ -285,44 +285,67 @@
   ;; restarting the assistant.
   (s/validate
     AnnotationStreamsSchema
-    {:eval             {:annotator  #'eval-annotation
-                        :streams    {:default       "Triple query eval"}
-                        :mime-types #{"text/x-clojure"}}
-     :reader-errors    {:annotator  #'reader-errors
-                        :streams    {:default "Reader errors"}
-                        :mime-types #{"text/x-clojure"}}
-     :semantic-graph   {:annotator  #'semantic-graph
-                        :streams    {:default "Semantic graph"}
-                        :mime-types #{"text/plain"}}
-     :chunk-separators {:annotator  #'chunk-separators
-                        :streams    {:default "Chunk separators"}
-                        :mime-types #{"text/plain" "text/x-clojure"}}
-     :coref-clusters   {:annotator  #'coref-clusters
-                        :streams    {:default "Coreference clusters"}
-                        :mime-types #{"text/plain"}}
-     :linked           {:annotator  #'linked
-                        :streams    {:default "Linked"}
-                        :mime-types #{"text/plain"}}
-     :draw             {:annotator  #'draw
-                        :streams    {:default            "Extracted graph"
-                                     :warning-highlights "Highlight graph warnings"
-                                     :warnings           "Show graph warnings"}
-                        :mime-types #{"text/plain"}}
-     :grouped-triples  {:annotator  #'grouped-triples
-                        :streams    {:default "Grouped triples"}
-                        :mime-types #{"text/plain"}}
-     :reified-triples  {:annotator  #'reified-triples
-                        :streams    {:default "Reified triples"}
-                        :mime-types #{"text/plain"}}
-     :reified-name     {:annotator  #'reified-name
-                        :streams    {:default "Reified symbol tooltips for words"}
-                        :mime-types #{"text/plain"}}
-     :triples          {:annotator  #'triples
-                        :streams    {:default "Triples"}
-                        :mime-types #{"text/plain"}}
-     :ontology         {:annotator  #'ontology
-                        :streams    {:default "Ontology"}
-                        :mime-types #{"text/plain"}}}))
+    {:eval
+     {:annotator  #'eval-annotation
+      :streams    {:default       "Triple query eval"}
+      :mime-types #{"text/x-clojure"}}
+
+     :reader-errors
+    {:annotator  #'reader-errors
+     :streams    {:default "Reader errors"}
+     :mime-types #{"text/x-clojure"}}
+
+     :semantic-graph
+     {:annotator  #'semantic-graph
+      :streams    {:default "Semantic graph"}
+      :mime-types #{"text/plain"}}
+
+     :chunk-separators
+     {:annotator  #'chunk-separators
+      :streams    {:default "Chunk separators"}
+      :mime-types #{"text/plain" "text/x-clojure"}}
+
+     :coref-clusters
+     {:annotator  #'coref-clusters
+      :streams    {:default "Coreference clusters"}
+      :mime-types #{"text/plain"}}
+
+     :linked
+     {:annotator  #'linked
+      :streams    {:default "Linked"}
+      :mime-types #{"text/plain"}}
+
+     :draw
+     {:annotator  #'draw
+      :streams    {:default            "Extracted graph"
+                   :warning-highlights "Highlight graph warnings"
+                   :warnings           "Show graph warnings"}
+      :mime-types #{"text/plain"}}
+
+     :grouped-triple-primitives
+     {:annotator  #'grouped-triple-primitives
+      :streams    {:default "Grouped triple primitives"}
+      :mime-types #{"text/plain"}}
+
+     :triples
+     {:annotator  #'triples
+      :streams    {:default "Triples"}
+      :mime-types #{"text/plain"}}
+
+     :triple-primitives
+     {:annotator  #'triple-primitives
+      :streams    {:default "Triple primitives"}
+      :mime-types #{"text/plain"}}
+
+     :reified-name
+     {:annotator  #'reified-name
+      :streams    {:default "Reified symbol tooltips for words"}
+      :mime-types #{"text/plain"}}
+
+     :ontology
+     {:annotator  #'ontology
+      :streams    {:default "Ontology"}
+      :mime-types #{"text/plain"}}}))
 
 (defn annotation-stream-descriptions
   "Generate a map in the form of `{\"<stream-name>\" \"<stream description>\"}` from

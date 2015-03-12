@@ -38,7 +38,7 @@
                   obj-class  (owl-class (name (:symbol object)))
                   subj-ind   (individual (name (:symbol subject)) :type subj-class)
                   obj-ind    (individual (name (:symbol object)) :type obj-class)]]
-      (assert-object-property (object-property (name predicate)) subj-ind obj-ind)
+      (assert-object-property (object-property (name (:symbol predicate))) subj-ind obj-ind)
       (add-word-group subj-class subj-ind subject)
       (add-word-group obj-class obj-ind object))
     (save-ontology filename :rdf)))

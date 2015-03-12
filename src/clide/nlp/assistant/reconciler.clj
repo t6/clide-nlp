@@ -46,15 +46,15 @@
 (def reconciler-graph
   (assoc snippets/dependency-graph
     :draw
-    (fnk [reified-triples :as this]
+    (fnk [triples :as this]
       (nlp/with-db this
         (#'draw/extract-graph)))
 
     :ontology
-    (fnk [reified-triples :as this]
+    (fnk [triples :as this]
       (log/info "Realizing :ontology")
       (nlp/with-db this
-        (#'onto/reified-triples->ontology reified-triples "ontology.rdf"))
+        (#'onto/reified-triples->ontology triples "ontology.rdf"))
       (slurp "ontology.rdf"))))
 
 (declare reconcile-chunks)
@@ -71,11 +71,11 @@
 (defn initialize :- State
   "Prepares `text` for annotation. This intializes the reconciler and
   returns an initial state. See `State`."
-  ([text] (initialize "text/plain" text))  
+  ([text] (initialize "text/plain" text))
   ([mime-type :- s/Str, text :- s/Str]
      (let [text-chunks (chunks mime-type text)]
        (reconcile-chunks
-        {:text      (or text "")         
+        {:text      (or text "")
          :mime-type mime-type
          :chunks    (vec text-chunks)}))))
 

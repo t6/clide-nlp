@@ -13,6 +13,9 @@
   :scm {:name "git"
         :url "https://github.com/t6/clide-nlp"}
 
+  :deploy-repositories [["releases" :clojars]
+                        ["snapshots" :clojars]]
+
   :repositories [["sonatype" {:url    "https://oss.sonatype.org/content/groups/public/"
                               :update :always}]]
 
@@ -20,7 +23,7 @@
              :exclusions [org.scala-lang/scala-compiler]]
             [org.scala-lang/scala-compiler "2.10.4"]
             [lein-expectations "0.0.8"]
-            [codox "0.8.10"]]
+            [codox "0.8.11"]]
 
   :source-paths ["src" "src-scala"]
   :scala-source-path "src-scala"
@@ -59,28 +62,29 @@
 
   :profiles {:light-table [:dev {:dependencies [[lein-light-nrepl "0.0.17"]]
                                  :repl-options {:nrepl-middleware [lighttable.nrepl.handler/lighttable-ops]}}]
-             :dev {:dependencies [[expectations "2.0.9"]
-                                  [org.clojure/tools.namespace "0.2.6"]
+             :dev {:dependencies [[expectations "2.0.16"]
+                                  [org.clojure/tools.namespace "0.2.10"]
                                   [reiddraper/simple-check "0.5.6"]]}}
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/core.match "0.2.2"]
+                 [org.clojure/tools.reader "0.8.16"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
 
                  [t6/snippets "0.1.0-SNAPSHOT"]
                  [t6/snippets-corenlp "0.1.0-SNAPSHOT"]
-                 [t6/from-scala "0.1.0"]
+                 [t6/from-scala "0.2.1"]
 
                  [uk.org.russet/tawny-owl "1.1.0"]
 
                  #_[org.clojure/tools.logging "0.2.6"]
                  [ch.qos.logback/logback-classic "1.1.2"]
-                 [org.slf4j/slf4j-log4j12 "1.7.7"]
+                 [org.slf4j/slf4j-log4j12 "1.7.10"]
 
-                 [selmer "0.7.0"]
-                 [instaparse "1.3.3"]
+                 [selmer "0.8.2"]
+                 [instaparse "1.3.5"]
 
-                 [com.stuartsierra/component "0.2.2"]
+                 [com.stuartsierra/component "0.2.3"]
 
                  [com.typesafe.akka/akka-slf4j_2.10 "2.2.3"]
                  [org.scala-lang/scala-library "2.10.4"]
