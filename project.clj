@@ -4,7 +4,6 @@
   :license {:name "GNU Lesser General Public License"
             :url "http://www.gnu.org/licenses/lgpl.html"}
 
-
   :pom-addition [:developers
                  [:developer
                   [:id "t6"]
@@ -21,9 +20,9 @@
 
   :plugins [[lein-scalac "0.1.0"
              :exclusions [org.scala-lang/scala-compiler]]
-            [org.scala-lang/scala-compiler "2.10.4"]
+            [org.scala-lang/scala-compiler "2.10.6"]
             [lein-expectations "0.0.8"]
-            [codox "0.8.11"]]
+            [codox "0.9.6"]]
 
   :source-paths ["src" "src-scala"]
   :scala-source-path "src-scala"
@@ -62,35 +61,37 @@
 
   :profiles {:light-table [:dev {:dependencies [[lein-light-nrepl "0.0.17"]]
                                  :repl-options {:nrepl-middleware [lighttable.nrepl.handler/lighttable-ops]}}]
-             :dev {:dependencies [[expectations "2.0.16"]
+             :dev {:dependencies [[expectations "2.1.9"]
                                   [org.clojure/tools.namespace "0.2.10"]
                                   [reiddraper/simple-check "0.5.6"]]}}
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.match "0.2.2"]
-                 [org.clojure/tools.reader "0.8.16"]
-                 [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
+                 [org.clojure/tools.reader "0.10.0"]
+                 [org.clojure/core.async "0.2.385"]
+                 [org.clojure/tools.analyzer "0.6.9"]
+                 [org.clojure/tools.analyzer.jvm "0.6.10"]
 
                  [t6/snippets "0.1.0-SNAPSHOT"]
                  [t6/snippets-corenlp "0.1.0-SNAPSHOT"]
-                 [t6/from-scala "0.2.1"]
+                 [t6/from-scala "0.3.0"]
 
                  [uk.org.russet/tawny-owl "1.1.0"]
 
                  #_[org.clojure/tools.logging "0.2.6"]
-                 [ch.qos.logback/logback-classic "1.1.2"]
-                 [org.slf4j/slf4j-log4j12 "1.7.10"]
+                 [ch.qos.logback/logback-classic "1.1.7"]
+                 [org.slf4j/slf4j-log4j12 "1.7.21"]
 
-                 [selmer "0.8.2"]
-                 [instaparse "1.3.5"]
+                 [selmer "1.0.7"]
+                 [instaparse "1.4.2"]
 
-                 [com.stuartsierra/component "0.2.3"]
+                 [com.stuartsierra/component "0.3.1"]
 
                  [com.typesafe.akka/akka-slf4j_2.10 "2.2.3"]
-                 [org.scala-lang/scala-library "2.10.4"]
+                 [org.scala-lang/scala-library "2.10.6"]
 
-                 [seesaw "1.4.4"] ; for the starter
-                 [org.apache.ant/ant "1.9.4"]
+                 [seesaw "1.4.5"] ; for the starter
+                 [org.apache.ant/ant "1.9.7"]
                  [t6/clide-web_2.10 "2.0-0b4b839d"
                   :exclusions [org.slf4j/slf4j-nop
                                ch.qos.logback/logback-classic

@@ -117,12 +117,13 @@ With three chunks.")
 ;;; -------------------------------------------------------------------
 ;;; apply-delta
 
-(expect-let [text "A\n----\nB"]
-  "A---\nB"
-  (apply-delta text
-               [[:retain 1]
-                [:delete 2]
-                [:retain (- (count text) 3)]]))
+(expect
+ (let [text "A\n----\nB"]
+   "A---\nB"
+   (apply-delta text
+                [[:retain 1]
+                 [:delete 2]
+                 [:retain (- (count text) 3)]])))
 
 (expect "Hi."
   (from-each [delta [[[:insert "Hi."]]
@@ -141,52 +142,53 @@ With three chunks.")
                       [:delete 1000]]))
 
 ;; delete
-(expect-let [text "his is a test."]
-  text
-  (apply-delta "This is a test."
-               [[:delete 1]
-                [:retain (count text)]]))
+(let [text "his is a test."]
+  (expect text
+   (apply-delta "This is a test."
+                [[:delete 1]
+                 [:retain (count text)]])))
 
-(expect-let [text "Thisisatest."]
-  text
-  (apply-delta "This is a test."
-               [[:retain 4]
-                [:delete 1]
-                [:retain 2]
-                [:delete 1]
-                [:retain 1]
-                [:delete 1]
-                [:retain (- (count text) 7)]]))
+(let [text "Thisisatest."]
+  (expect text
+   (apply-delta "This is a test."
+                [[:retain 4]
+                 [:delete 1]
+                 [:retain 2]
+                 [:delete 1]
+                 [:retain 1]
+                 [:delete 1]
+                 [:retain (- (count text) 7)]])))
 
 ;; insert
-(expect-let [text "This is a test."]
-  "This is an interesting test."
-  (apply-delta text
-               [[:retain 9]
-                [:insert "n interesting"]
-                [:retain (- (count text) 9)]]))
+(expect "This is an interesting test."
+ (let [text "This is a test."]
+   (apply-delta text
+                [[:retain 9]
+                 [:insert "n interesting"]
+                 [:retain (- (count text) 9)]])))
 
-(expect-let [text "This is a test."]
-  "This is an interesting test."
-  (apply-delta text [[:retain 9]
-                     [:insert "n"]
-                     [:retain 1]
-                     [:insert "interesting "]
-                     [:retain (- (count text) 10)]]))
+(expect "This is an interesting test."
+ (let [text "This is a test."]
+   (apply-delta text [[:retain 9]
+                      [:insert "n"]
+                      [:retain 1]
+                      [:insert "interesting "]
+                      [:retain (- (count text) 10)]])))
 
 ;; mixing retain, insert, delete
-(expect-let [text "This is a test."]
-  "This is the text that tests `apply-delta`."
-  (apply-delta text [[:retain 8]
-                     [:delete 2]
-                     [:insert "the "]
-                     [:retain 2]
-                     [:delete 2]
-                     [:insert "xt"]
-                     [:delete 1]
-                     [:insert " that tests"]
-                     [:insert " `apply-delta`."]
-                     [:retain (- (count text) 15)]]))
+(let [text "This is a test."]
+  (expect
+   "This is the text that tests `apply-delta`."
+   (apply-delta text [[:retain 8]
+                      [:delete 2]
+                      [:insert "the "]
+                      [:retain 2]
+                      [:delete 2]
+                      [:insert "xt"]
+                      [:delete 1]
+                      [:insert " that tests"]
+                      [:insert " `apply-delta`."]
+                      [:retain (- (count text) 15)]])))
 
 ;;; -------------------------------------------------------------------
 ;;; update
@@ -197,7 +199,7 @@ With three chunks.")
   (clojure.string/join (map :text (:chunks state))))
 
 ;; updating the reconciler state should apply the delta
-(expect-let [text "This is a test. \n----\n Hi."
-             delta [[:retain 1] [:insert "bla"] [:retain 21] [:delete 1] [:insert "hi"] [:retain 3]]]
-  (apply-delta text delta)
-  (-> (initialize text) (update delta) chunks->text))
+(let [text "This is a test. \n----\n Hi."
+        delta [[:retain 1] [:insert "bla"] [:retain 21] [:delete 1] [:insert "hi"] [:retain 3]]]
+  (expect (apply-delta text delta)
+          (-> (initialize text) (update delta) chunks->text)))
